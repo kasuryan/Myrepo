@@ -2,7 +2,21 @@
 '''
 A script which was written to perform audit of hosts to make sure they have standard setup in place to conform to standard monitoring and configuration management requirements of the organization.
 Scripts arguments are input of IPs in a file and DC number when calling the script. Output of the results of audit are redirected to a csv file.
-Script uses Boolean values to capture the success/failure of a check.
+
+Script uses Boolean values to capture the success/failure of a check. it alsoemploys SSH key to be added automatically as the script runs through a chunk of hosts
+
+Example output: argument file has 1 ip, DC number is 11 for which compliance has to be checked. First part is the verbose output as script executes and the second is fetched from the file where the results were written.
+[root@spider10001 python]# ./basic_check2.py ips.txt 11
+Host is up & running
+Warning: Permanently added '192.168.46.90' (RSA) to the list of known hosts.
+Puppet agent is running
+Sysedge agent is running
+Trap destinations are fine
+192.168.46.90 is in Smarts
+['wis-mom11021b.mon11.blackberry.', True, True, True, True, True, ['STRING: "crond"', 'STRING: "ntpd"', 'STRING: "sshd"', 'STRING: "syslogd"', 'STRING: "cron"'], (True, '31')]
+[root@spider10001 python]# tail -1 stats.csv
+wis-mom11021b.mon11.blackberry.,True,True,True,True,True,"['STRING: ""crond""', 'STRING: ""ntpd""', 'STRING: ""sshd""', 'STRING: ""syslogd""', 'STRING: ""cron""']","(True, '31')"
+
 '''
 import subprocess
 import shlex
@@ -54,10 +68,10 @@ def pingcheck(ip):
       print("{} is not reachable").format(ip)
       return pingable
 
-#Puppet agent running on the hosts is an important part of the audit, this function does that.
+#Puppet agent running on the hosts is an important part of the audit, this function does that. 
 def puppetagent(ip):
     global puppet_agent;puppet_agent = False
-    cmd2 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa ' + ip + ' "service puppet status"'
+    cmd2 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa -o StrictHostKeyChecking=no ' + ip + ' "service puppet status"'
     try:
 	cmd2op = subprocess.check_output(shlex.split(cmd2)).find('is running...')
     except subprocess.CalledProcessError:
@@ -69,10 +83,10 @@ def puppetagent(ip):
         print("Puppet agent is not running")
     return puppet_agent
 
-#Function to check if SNMP agent sysedge is running on the host or not
+#Function to check if SNMP agent from vendor CA i.e sysedge is running on the host or not
 def sysedgeagent(ip):
     global sysedge_agent;sysedge_agent = False
-    cmd3 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa ' + ip + ' "service sysedge status"'
+    cmd3 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa -o StrictHostKeyChecking=no ' + ip + ' "service sysedge status"'
     cmd3op = subprocess.check_output(shlex.split(cmd3)).find('SystemEDGE is running')
     if cmd3op != -1:
         sysedge_agent = True
@@ -85,7 +99,7 @@ def sysedgeagent(ip):
 def sysedgeconfig(ip):
     global sysedge_config, trapd, dc
     sysedge_config = False
-    cmd4 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa ' + ip + ' "grep trap_community /etc/sysedge.cf | grep public"'
+    cmd4 = 'ssh -i /home/ksuryanarayanan/bbops_id_dsa -o StrictHostKeyChecking=no ' + ip + ' "grep trap_community /etc/sysedge.cf | grep public"'
     cmd4op = subprocess.check_output(shlex.split(cmd4))
     if dc in ('2','4','7'):
         if ip[0:3] == '192':
