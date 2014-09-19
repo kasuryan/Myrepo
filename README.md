@@ -1,4 +1,4 @@
 Myscripts
 =========
 
-some general scripting
+Scripts to automate things in a distributed evironment and to improve efficiency.
