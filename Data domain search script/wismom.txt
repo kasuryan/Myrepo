@@ -1,0 +1,4 @@
+wis-mom10001a.mon10.blackberry
+wis-mom10003a.mon10.blackberry
+wis-mom10011a.mon10.blackberry
+wis-mom10013a.mon10.blackberry
