@@ -1,12 +1,12 @@
 #!/usr/local/bin/python
 '''
 A script which was written to perform audit of hosts to make sure they have standard setup in place to conform to standard monitoring and configuration management requirements of the organization.
-Scripts arguments are input of IPs in a file and DC number when calling the script. Output of the results of audit are redirected to a csv file.
+Scripts arguments are input of IPs in a file. Output of the results of audit are redirected to a csv file.
 
 Script uses Boolean values to capture the success/failure of a check. it alsoemploys SSH key to be added automatically as the script runs through a chunk of hosts
 
-Example output: argument file has 1 ip, DC number is 11 for which compliance has to be checked. First part is the verbose output as script executes and the second is fetched from the file where the results were written.
-[root@spider10001 python]# ./basic_check2.py ips.txt 11
+Example output: argument file has 1 ip. First part is the verbose output as script executes and the second is fetched from the file where the results were written.
+[root@spider10001 python]# ./basic_check.py ips.txt
 Host is up & running
 Warning: Permanently added '192.168.46.90' (RSA) to the list of known hosts.
 Puppet agent is running
@@ -24,29 +24,44 @@ import os
 import csv
 import sys
 
-# Trap receivers of SNMP traps are DC specific & according to the DC argument provided, the hosts will be validated against these values.
-dc = sys.argv[2]
-if dc == '2':
-    trapd = ['192.168.26.230','fm-dn01a.c0.mon2.blackberry','192.168.26.231','fm-dn01b.c0.mon2.blackberry','172.25.185.242','fm-sn01a.c0.mon2.blackberry','172.25.185.243','fm-sn01b.c0.mon2.blackberry']
-elif dc == '4':
-    trapd = ['192.168.29.230','bm-dn01a.mon4.blackberry','192.168.29.231','bm-dn01b.mon4.blackberry','172.26.185.242','bm-sn01a.mon4.blackberry','172.26.185.243','bm-sn01b.mon4.blackberry']
-elif dc == '5':
-    trapd = ['192.168.32.210','montraps5001a.mgmt5.blackberry','192.168.32.211','montraps5001b.mgmt5.blackberry']
-elif dc == '6':
-    trapd = ['192.168.35.210','montraps6001a.mgmt6.blackberry','192.168.35.211','montraps6001b.mgmt6.blackberry']
-elif dc == '7':
-    trapd = ['192.168.38.230','dn7001a.mgmt7.blackberry','192.168.38.231','dn7001b.mgmt7.blackberry','172.18.185.242','sn7001a.mon7.blackberry','172.18.185.243','sn7001b.mon7.blackberry']
-elif dc == '10':
-    trapd = ['192.168.49.22','montraps10001a.mon10.blackberry','192.168.49.23','montraps10001b.mon10.blackberry']
-elif dc == '11':
-    trapd = ['192.168.46.28','montraps11001a.mon11.blackberry','192.168.46.29','montraps11001b.mon11.blackberry']
-elif dc == '20':
-    trapd = ['192.168.43.149','montraps20001a.mon20.blackberry','192.168.43.150','montraps20001b.mon20.blackberry']
-elif dc == '21':
-    trapd = ['192.168.44.154','montraps21001a.mon21.blackberry','192.168.44.155','montraps21001b.mon21.blackberry']
-else:
-    print("DC not known")
-    exit
+dc = '' 
+trapd = []
+
+# Trap receivers of SNMP traps are DC specific & according to the DC identified, the hosts will be validated against these values.
+def dcid(hostname):
+    global dc
+    global trapd
+    if re.search(r'.*\.(mon2|mgmt2)\..*', hostname):
+	dc = '2'
+	trapd = ['192.168.26.230','fm-dn01a.c0.mon2.blackberry','192.168.26.231','fm-dn01b.c0.mon2.blackberry','172.25.185.242','fm-sn01a.c0.mon2.blackberry','172.25.185.243','fm-sn01b.c0.mon2.blackberry']
+    elif re.search(r'.*\.(mon4|mgmt4)\..*', hostname):
+	dc = '4'
+	trapd = ['192.168.29.230','bm-dn01a.mon4.blackberry','192.168.29.231','bm-dn01b.mon4.blackberry','172.26.185.242','bm-sn01a.mon4.blackberry','172.26.185.243','bm-sn01b.mon4.blackberry']
+    elif re.search(r'.*\.(mon5|mgmt5)\..*', hostname):
+	dc = '5'
+	trapd = ['192.168.32.210','montraps5001a.mgmt5.blackberry','192.168.32.211','montraps5001b.mgmt5.blackberry']
+    elif re.search(r'.*\.(mon6|mgmt6)\..*', hostname):
+        dc = '6'
+	trapd = ['192.168.35.210','montraps6001a.mgmt6.blackberry','192.168.35.211','montraps6001b.mgmt6.blackberry']
+    elif re.search(r'.*\.(mon7|mgmt7)\..*', hostname):
+        dc = '7'
+	trapd = ['192.168.38.230','dn7001a.mgmt7.blackberry','192.168.38.231','dn7001b.mgmt7.blackberry','172.18.185.242','sn7001a.mon7.blackberry','172.18.185.243','sn7001b.mon7.blackberry']
+    elif re.search(r'.*\.mon10\..*', hostname):
+        dc = '10'
+	trapd = ['192.168.49.22','montraps10001a.mon10.blackberry','192.168.49.23','montraps10001b.mon10.blackberry']
+    elif re.search(r'.*\.mon11\..*', hostname):
+        dc = '11'
+	trapd = ['192.168.46.28','montraps11001a.mon11.blackberry','192.168.46.29','montraps11001b.mon11.blackberry']
+    elif re.search(r'.*\.mon20\..*', hostname):
+        dc = '20'
+	trapd = ['192.168.43.149','montraps20001a.mon20.blackberry','192.168.43.150','montraps20001b.mon20.blackberry']
+    elif re.search(r'.*\.mon21\..*', hostname):
+        dc = '21'
+	trapd = ['192.168.44.154','montraps21001a.mon21.blackberry','192.168.44.155','montraps21001b.mon21.blackberry']
+    else:
+    	print("DC not known")
+	exit
+
 
 #pingable = puppet_agent = sysedge_agent = sysedge_config = in_smarts = audit_config = in_ehealth = False
 
@@ -162,7 +177,8 @@ with open(iplist,'r') as file:
 	    ip_stat = []
 	    hostcmd = 'dig -x ' + ip + ' +short'
 	    hostname = subprocess.check_output(shlex.split(hostcmd)).strip()
-	    ip_stat.append(hostname)	
+	    ip_stat.append(hostname)
+	    dcid(hostname)
             pingable = pingcheck(ip.strip())
             if pingable == False:
                 ip_stat.append(pingable)
