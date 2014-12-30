@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# tomcat        Starts Apache Tomcat.
+#
+#
+# chkconfig: 2345 12 88
+# description: Tomcat does Java WebApps.  Fun.
+### BEGIN INIT INFO
+# Provides: $tomcat
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+[ -d /usr/local/apache-tomcat ] || exit 0
+
+# Source config
+if [ -f /etc/sysconfig/tomcat ] ; then
+        . /etc/sysconfig/tomcat
+else
+        JAVA_HOME=/usr/java/default
+        CATALINA_BASE=/usr/local/apache-tomcat
+fi
+
+RETVAL=0
+
+umask 077
+
+start() {
+        echo $"Starting tomcat: "
+        $CATALINA_HOME/bin/startup.sh
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/tomcat
+        return $RETVAL
+}
+stop() {
+        echo $"Shutting down tomcat: "
+        $CATALINA_HOME/bin/shutdown.sh
+        echo
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/tomcat
+        return $RETVAL
+}
+rhstatus() {
+        echo $"Checking status of Tomcat is not currently supported."
+}
+restart() {
+        stop
+        start
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        rhstatus
+        ;;
+  restart|reload)
+        restart
+        ;;
+  condrestart)
+        [ -f /var/lock/subsys/tomcat ] && restart || :
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+        exit 1
+esac
+
+exit $?
+

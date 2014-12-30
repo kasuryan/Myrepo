@@ -1,0 +1,8 @@
+# Options to tomcat
+# More to set Java variables, really
+JAVA_BINDIR=/usr/java/default/jre/bin
+JAVA_HOME=/usr/java/default/jre
+JAVA_ROOT=/usr/java/default/jre
+CATALINA_HOME=/usr/local/apache-tomcat
+JAVA_OPTS="-Xmx2800m $JAVA_OPTS "
+export JAVA_BINDIR JAVA_HOME JAVA_ROOT CATALINA_HOME JAVA_OPTS

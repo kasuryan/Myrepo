@@ -1,0 +1,154 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+!! WebConfigure configuration parameters
+!!
+!! The application must be restarted for changes to take effect.
+!! This usually means restarting the servlet container.
+!!
+
+!!
+!! Relay database connection driver.
+!! Just have to ensure that the appropriate driver is in the CLASSPATH!
+!! You'll have to setup the build.xml file to include the appropriate
+!! .JAR file with the build.
+drivername=oracle.jdbc.OracleDriver
+
+!!
+!! Relay database URL.
+!!
+!! This is the JDBC URL that is used to connect to the Relay database.
+!! It is dependent on the JDBC driver specified in the 'drivername' parameter.
+!!
+!! "sunora" - swlab - mississauga provisioning
+!! dburl=jdbc:oracle:thin:@sunora.rim.net:1521:r2db01
+!!
+!! "r1db01" - swlab - production
+!! dburl=jdbc:oracle:thin:@r1-db-01.swlab.rim.net:1521:r1db01
+!!
+!! "r2db01" - swlab
+!! dburl=jdbc:oracle:thin:@r2-db-01.swlab.rim.net:1521:r2db01
+!!
+!! "r3db01" - swlab
+!!dburl=jdbc:oracle:oci8:@r3db01
+!!
+!! "r4db01" - swlab
+dburl=jdbc:oracle:thin:@<%= @dburl %>
+!!
+!! Relay database username and password.
+!! Username and password to connect to the Relay database for administrative
+!! functions - things that the code needs to do not specific to an individual user,
+!! such as reading and modifying the Relay configuration.
+!!
+username=<%= @rlydb_username %>
+password=<%= @rlydb_passwd %>
+!!
+!! Support for locking the Relay database user account in production.
+!! 'produser' is the owner of the DB objects in production.
+!! The 'username' and 'password' parameters are used to connect to the application user in production.
+!! In other environments, where relay and other applications share the same username/password,
+!! 'produser' can be set to the 'username' value or left blank.
+!!
+!! Example for production:
+!! username=webconf_user
+!! password=webconf_password
+!! produser=relay
+!!
+!! Example for an unsecured environment:
+!! username=relay_user
+!! password=relay_password
+!! produser=relay_user    -- OR -- produser=
+produser=relay
+
+!!
+!! Route Service support.
+!! This parameter enables WebConfigure's Route Service features.
+!! It's main purpose is to allow WebConfigure to be backwards-compatible with Relay versions that do not
+!! support Route Service. If set to anything other than 'true', WebConfigure will hide all pages related
+!! to Route Service, and disable all functions that make use of Route Service and its database tables.
+routeservice.supported=true
+
+!!
+!! Route Service database connection parameters.
+!! The following parameters are equivalent to the ones used to set up the Relay database connection.
+!! 'routeservice.dburl' is dependent upon the JDBC driver specified by the 'drivername' parameter.
+!! If no 'routeservice.dburl' is specified, WebConfigure will assume Route Service configuration is
+!! stored on the Relay database and 'routeservice.username', 'routeservice.password' and
+!! 'routeservice.produser' will be ignored.
+!! WebConfigure will also assume Route Service configuration is stored on the Relay database if these
+!! parameters are set to the same values as 'dburl', 'username', 'password' and 'produser'.
+!!
+!! NOTE: For Route Service database connections to be set up, 'routeservice.supported' must be set to 'true'.
+!!
+!!routeservice.dburl=jdbc:oracle:thin:@r4-db-01.swlab.rim.net:1521:r4db01
+!!routeservice.username=relay
+!!routeservice.password=relay
+!!routeservice.produser=relay
+routeservice.dburl=jdbc:oracle:thin:@<%= @dburl %>
+routeservice.username=RteSvAdm
+routeservice.produser=RteSVAdm
+routeservice.password=rou8svadm
+routeservice.supported=true
+
+
+!!
+!! RSCI database connection parameters.
+!! A connection to the RSCI database is required to access GUID configuration.
+!! Example format:
+!!     rsci.dburl=jdbc:oracle:thin:@dev-db-21.swlab.rim.net:1521:devdb21c
+!!
+rsci.dburl=jdbc:oracle:thin:@(DESCRIPTION =(ADDRESS_LIST =(ADDRESS = (PROTOCOL = TCP)(HOST = s11-rca01.rly11.blackberry)(PORT = 1525))(ADDRESS = (PROTOCOL = TCP)(HOST = s11-rcb01.rly11.blackberry)(PORT = 1525)))(ENABLE = BROKEN)(CONNECT_DATA =(SERVICE_NAME = NARSCI)(SERVER = DEDICATED)))
+rsci.username=SRPKEYMGR
+rsci.password=SRPKEYMGR
+
+!!
+!! Unique name for this instance of WebConfigure.
+!! Every component is identified by a unique database service name.  This name is found in the SERVICENAME field
+!! of the RELAYCONFIG table and used in the RELAYCOMPONENT table.  It is mandatory to have a service name.
+relaycomponent.dsn=<%= @rlycomponent_dsn %>
+relaycomponent.BindToIP=<%= @bindtoip %>
+
+
+!!
+!! IP address that WebConfigure will bind to for listening to Relay IRP traffic (unicast).
+!! If an address is not specified, WebConfigure will attempt to determine a local IP address.
+!! On startup, the 'relaycomponent.dsn' and 'relaycomponent.BindToIP' address combination will be used to claim
+!! a relay component id and a port number for this WebConfigure instance.
+
+
+!!
+!! RIM AD host and domain for validation.
+!!
+ldapurl=<%= @ldap_url %>
+
+!!
+!! How long (in ms) a result from a handheldDeviceStateRequest is cached by WebConfigure
+!!
+deviceStateCacheLength=120000
+
+!!
+!! How long to wait (in ms) while trying to figure out a handheld's device status
+!!
+deviceStateMaxWait=4000
+
+!!
+!! How many RemoveHandheldFromCache messages get sent to all WT/RB/SRPHs before sleeping for cacheClearSleepInterval seconds.
+!! If you change this, change handheld.prompt.removefromcache.pin.instructions in ApplicationResources.properties
+!!
+cacheClearPacingLimit=100
+
+!!
+!! How long to sleep, in ms.  (see cacheClearPacingLimit)
+!! If you change this, change handheld.prompt.removefromcache.pin.instructions in ApplicationResources.properties
+!!
+cacheClearSleepInterval=5000
+
+!! Minimum and maximum allowable values for TTL (time-to-live in ms) property in REG_CARRIER table
+minTTL=2592000
+maxTTL=2592000
+
+!!
+!! Refresh period, in milliseconds, of WebConfigure's internal RCID-to-service name map.
+!! This map is useful for obtaining the service name of a Relay component when its RCID is known,
+!! and it would be preferable to avoid reading it directly from the DB.
+!!
+rcidToServiceNameMapRefreshPeriod=15000
