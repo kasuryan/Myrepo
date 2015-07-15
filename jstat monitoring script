@@ -1,0 +1,171 @@
+#!/usr/bin/python
+''' 
+The script was written to achieve following objectives set out as below & is meant to run as a cronjob on each individual host that
+runs java application process to monitor the app performance metrics.
+1. The gccause monitoring should be done every 10 seconds
+2. When the Server is restarted, this script also needs to be restarted automatically
+3. If any of the generation (E or O or P) is stuck at 100%:
+    3 consecutive probes show 100% - soft alert
+    5 consecutive probes show 100% - hard alert
+    FGC count is increasing in :
+    3 consecutive probes - soft alert
+    5 consecutive probes - hard alert
+4. All alert emails must contain last 11 rows of this log (by giving -h10, the header is repeated after 10 records)
+5. To implement these checks, the script must remember last n records (n=5 to start with)
+6. The script must run in all JVM machines:
+    PServer
+    PLB
+
+Functions
+jps() fetches the java process pid
+jstat_run() runs the desired jstat command, parses the output to redirect relevant output to the log file as well as stores values 
+    for further computations & conditional checks in a list and passed in a functional call to jstat_checks()
+jstat_checks(): accepts the list of jstat output values from the current run, goes through checks and initiates appropriate actions when
+    conditions are met
+mail_action() This functions deals with fetching the column headers and last 10 lines of output from previous 10 jstat runs & 
+    send them in an email utilizing a third party SMTP service provider.
+file_size_check() maintains a check on the number of lines in the file so that the file doesnt grow too big in size. 
+
+'''
+import subprocess
+import csv
+import os
+import smtplib
+from subprocess import PIPE
+from subprocess import Popen
+from time import sleep
+from decimal import Decimal
+from collections import deque
+from email.mime.text import MIMEText
+
+#Variable capturing the state of the script run, run_list maintains the last 5 run values, 
+#R0_list maintains the values from current run of jstat .
+initial_run = True
+run_list = deque([], 5)
+R0_list = []
+mypath = '/var/log/'
+
+#function that grabs the lvm id of the java process
+def jps():
+        #subprocess.check_output('ps -ef | grep [a]utofsd | awk \'{print $2}\'', shell=True).splitlines()
+        list_pid = subprocess.Popen('jps | grep Server | awk \'{print $1}\'', shell=True, stdout=subprocess.PIPE).communicate()[0].rstrip()
+        return list_pid
+
+# function that accepts the list of values from jstat_run function. Works on specific values of interest, in this case values for
+# E, O, P & FGC. Appropriate actions are triggered when certain conditions are violated
+def jstat_checks(values):
+        global R0_list, run_list
+        warn_column = []
+        crit_column = []
+        R0_list = []
+        R0_list.append(Decimal(values[2]))
+        R0_list.append(Decimal(values[3]))
+        R0_list.append(Decimal(values[4]))
+        R0_list.append(Decimal(values[7]))
+        #print R0_list, run_list
+
+        if len(run_list) < 5 :
+                run_list.appendleft(R0_list)
+        else:
+                run_list.pop()
+                run_list.appendleft(R0_list)
+        #       print run_list
+                if (run_list[0][0] == run_list[1][0] == run_list[2][0] == run_list[3][0] == run_list[4][0] == Decimal('100')):
+                        warn_column.append('E')
+                if (run_list[0][1] == run_list[1][1] == run_list[2][1] == run_list[3][1] == run_list[4][1] == Decimal('100')):
+                        warn_column.append('O')
+                if  (run_list[0][2] == run_list[1][2] == run_list[2][2] == run_list[3][2] == run_list[4][2] == Decimal('100')):
+                        warn_column.append('P')
+                if (run_list[4][3] > run_list[3][3] > run_list[2][3] > run_list[1][3] > run_list[0][3]):
+                        warn_column.append('FGC')
+                if len(warn_column) > 0:
+                        col_name = ','.join(warn_column)
+                        mail_action(1, col_name)
+                        col_name = ''
+
+                if (run_list[0][0] == run_list[1][0] == run_list[2][0] == run_list[3][0] == run_list[4][0] == Decimal('100')):
+                        crit_column.append('E')
+                if (run_list[0][1] == run_list[1][1] == run_list[2][1] == run_list[3][1] == run_list[4][1] == Decimal('100')):
+                        crit_column.append('O')
+                if (run_list[0][2] == run_list[1][2] == run_list[2][2] == run_list[3][2] == run_list[4][2] == Decimal('100')):
+                        crit_column.append('P')
+                if(run_list[4][3] > run_list[3][3] > run_list[2][3] > run_list[1][3] > run_list[0][3]):
+                        crit_column.append('FGC')
+                if len(crit_column) > 0:
+                        col_name = ','.join(crit_column)
+                        mail_action(2, col_name)
+
+#function that executes jstat command whose output is written to a file as well & the output is parsed for the values thereafter a 
+# a function call to jstat_check() is made where conditionals are checked.
+def jstat_run(jpid):
+        global initial_run, mypath
+        cmd = 'jstat -gccause ' + jpid
+        out = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()[0].split('\n')
+        header = out[0].strip().split()
+        values = out[1].strip().split()
+        with open(os.path.join(mypath, "jstat_log.csv"), 'ab') as myfile:
+                myfilewriter = csv.writer(myfile)
+                if initial_run:
+                        myfilewriter.writerow(header)
+                        initial_run = False
+                myfilewriter.writerow(values)
+        jstat_checks(values)
+
+# Function that performs sending an email with the last 10 rows of jstat captured in the file from previous jstat runs. 
+def mail_action(sev, col_name):
+        global mypath
+        if sev != 3
+	        myfile = open(os.path.join(mypath, "jstat_log.csv"), 'rb')
+	        header = myfile.readline()
+	        lines = myfile.readlines()
+	        myfile.close()
+	        if len(lines) < 10:
+	                num = len(lines)
+	                last_10 = ''.join(lines[-num:])
+	        else:
+	                last_10 = ''.join(lines[-10:])
+	        msg = header + last_10
+        if sev == 1:
+                sub = "Subject: Warning thresholds violated for columns: %s \r\n\r\n" % col_name
+        if sev == 2:
+                sub = "Subject: Critical thresholds violated for columns: %s \r\n\r\n" % col_name
+        if sev == 3:
+        		sub = sub = "Subject: %s \r\n\r\n" % col_name
+        		mesg = col_name
+        username = 'test'
+        password = 'test' 
+        server = smtplib.SMTP('smtp.sendgrid.net')
+        server.ehlo()
+        server.starttls()
+        server.login(username,password)      
+        server.sendmail('kasuryan@sendgrid.me', 'abc@abc.com', sub + msg)
+        server.quit()
+
+# This function controls the number of lines present in the log file where jstat values are output to.
+def file_sizecheck():
+        global mypath
+        myfile = open(os.path.join(mypath, "jstat_log.csv"), 'rb')
+        lines = myfile.readlines()
+        myfile.close()
+        if len(lines) > 20:
+                index = len(lines)-11
+                del lines[1:index]
+                myfile = open(os.path.join(mypath, "jstat_log.csv"), 'wb')
+                myfile.writelines(lines)
+                myfile.close()
+
+#actual sequence of calls, get the java pid and uses the jpid to make calls to jstat_run function & control the lines in
+#the output file, then sleeps for 10 seconds and repeats. 
+jpid = jps()
+if jpid == '':
+        msg = "No java process found, EXITING!!!!"
+        mail_action(3, msg)
+        sys.exit(0)
+
+while True:
+#for i in range(7):
+        if os.path.isfile(os.path.join(mypath, "jstat_log.csv")):
+                initial_run = False
+        jstat_run(jpid)
+        file_sizecheck()
+        sleep(10)
