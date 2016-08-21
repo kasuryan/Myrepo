@@ -1,0 +1,22 @@
+Setting Environment for getting data from cloud 0
+
+Data from Cloud 0
+('ABCD_NET',
+ {'count_ips_used': 324,
+  'numips_in_net': 460,
+  'subnets_cidr': ['10.30.38.0/24', '10.30.24.0/24'],
+  'subnets_id': ['c591c002-699e-4fb3-ac84-899513e7d80c',
+                 'efd0ad94-53e4-407d-9344-11a5ffc1662a']})
+
+('EFGH_NET',
+ {'count_ips_used': 294,
+  'numips_in_net': 444,
+  'subnets_cidr': ['10.30.33.0/24', '10.30.20.0/24'],
+  'subnets_id': ['ae76ad29-25c8-460f-8a63-46ce140f550c',
+                 'cfe096d6-b607-4ced-888a-6d22c482e4e3']})
+
+('IJKL_NET',
+ {'count_ips_used': 117,
+  'numips_in_net': 222,
+  'subnets_cidr': ['10.30.23.0/24'],
+  'subnets_id': ['f4ca83ec-532d-4f73-8724-34e0a6ec2508']})
